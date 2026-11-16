@@ -146,6 +146,7 @@ function openModal(section, id = null) {
 
   editingSection    = section;
   currentImageBase64 = null;
+  clearDuplicateError();
 
   document.getElementById('entry-section').value            = section;
   document.getElementById('entry-image').value              = '';
@@ -181,6 +182,17 @@ function openModal(section, id = null) {
   document.getElementById('entry-title').focus();
 }
 
+function isDuplicate(section, title, excludeId) {
+  const norm = t => t.trim().toLowerCase().replace(/\s+/g, ' ');
+  return (data[section] || []).some(i => i.id !== excludeId && norm(i.title) === norm(title));
+}
+
+function clearDuplicateError() {
+  document.getElementById('duplicate-error')?.remove();
+}
+
+document.getElementById('entry-title').addEventListener('input', clearDuplicateError);
+
 function closeModal() {
   document.getElementById('modal-overlay').classList.remove('open');
   editingId          = null;
@@ -197,6 +209,13 @@ document.getElementById('entry-form').addEventListener('submit', function (e) {
 
   if (!title) return;
   if (!data[section]) data[section] = [];
+
+  if (isDuplicate(section, title, editingId)) {
+    clearDuplicateError();
+    document.getElementById('entry-title').insertAdjacentHTML('afterend',
+      '<div id="duplicate-error" style="color:#c0392b;font-size:0.8rem;font-weight:700;margin-top:6px">⚠️ Already in your list</div>');
+    return;
+  }
 
   if (editingId) {
     const idx = data[section].findIndex(i => i.id === editingId);
@@ -257,9 +276,6 @@ document.getElementById('entry-image').addEventListener('change', async function
     currentImageBase64    = compressed;
     preview.src           = compressed;
     preview.style.opacity = '1';
-
-    const kb = Math.round((compressed.length * 3) / 4 / 1024);
-    console.log(`Compressed image: ~${kb} KB`);
   } catch (err) {
     console.error('Image compression failed:', err);
     previewWrap.style.display = 'none';
